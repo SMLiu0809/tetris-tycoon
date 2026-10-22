@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>俄羅斯方塊：經濟大亨版 (Tetris Tycoon)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger-color: #ef4444;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: var(--panel-bg);
+            border-bottom: 2px solid #334155;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .lang-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .lang-btn:active {
+            background: #475569;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            flex: 1;
+        }
+
+        .status-bar {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            padding: 6px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .game-arena {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            background: #020617;
+            border: 3px solid #334155;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90px;
+        }
+
+        .preview-box {
+            background: var(--panel-bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .preview-title {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .preview-canvas {
+            background: #020617;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* 觸控控制按鈕 */
+        .controls {
+            width: 100%;
+            max-width: 420px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: auto;
+            padding-bottom: 10px;
+        }
+
+        .ctrl-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 16px 0;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ctrl-btn:active {
+            background: #475569;
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px -1px rgba(0,0,0,0.3);
+        }
+
+        .ctrl-btn.primary {
+            background: var(--accent-color);
+        }
+        .ctrl-btn.primary:active {
+            background: var(--accent-hover);
+        }
+
+        .ctrl-btn.danger {
+            background: #b91c1c;
+        }
+
+        /* 彈窗遮罩 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal {
+            background: var(--panel-bg);
+            border: 2px solid #475569;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: #60a5fa;
+            margin-bottom: 16px;
+        }
+
+        .modal p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            background: var(--accent-hover);
+            transform: scale(0.98);
+        }
+
+        .btn.secondary {
+            background: #475569;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 打工小遊戲樣式 */
+        .parttime-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brick-pile {
+            font-size: 3rem;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .brick-pile:active {
+            transform: scale(1.15);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="ui-title">俄羅斯方塊：經濟大亨</h1>
+        <button class="lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">EN / 中文</button>
+    </header>
+
+    <div class="main-container">
+        <!-- 狀態欄 -->
+        <div class="status-bar">
+            <div class="stat-card">
+                <div class="stat-label" id="label-coins">金幣</div>
+                <div class="stat-value" id="val-coins">100</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" id="label-score">分數</div>
+                <div class="stat-value" id="val-score">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" id="label-level">關卡</div>
+                <div class="stat-value" id="val-level">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" id="label-goal">目標行</div>
+                <div class="stat-value" id="val-goal">10</div>
+            </div>
+        </div>
+
+        <!-- 遊戲主畫面與側邊欄 -->
+        <div class="game-arena">
+            <canvas id="tetris" width="200" height="400"></canvas>
+            <div class="side-panel">
+                <div class="preview-box">
+                    <div class="preview-title" id="label-next">下一個</div>
+                    <canvas id="next" width="60" height="60" class="preview-canvas"></canvas>
+                </div>
+                <div class="preview-box">
+                    <div class="preview-title" id="label-hold">暫存</div>
+                    <canvas id="hold" width="60" height="60" class="preview-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 觸控按鈕控制器 -->
+        <div class="controls">
+            <button class="ctrl-btn" onclick="movePiece(-1)">◀</button>
+            <button class="ctrl-btn" onclick="movePiece(1)">▶</button>
+            <button class="ctrl-btn" onclick="rotatePiece()">🔄</button>
+            <button class="ctrl-btn primary" onclick="hardDropPiece()">⬇⬇</button>
+            <button class="ctrl-btn" onclick="softDropPiece()" style="grid-column: span 2;">👇 軟降</button>
+            <button class="ctrl-btn danger" onclick="holdCurrentPiece()" style="grid-column: span 2;">🔁 交換</button>
+        </div>
+    </div>
+
+    <!-- 首頁 / 歡迎彈窗 -->
+    <div id="modal-welcome" class="modal-overlay">
+        <div class="modal">
+            <h2 id="wel-title">歡迎來到方塊大亨</h2>
+            <p id="wel-desc">入場費：<strong>10 金幣</strong>。<br>每消除指定行數即可通關並賺取豐厚獎金！如果金幣歸零，將面臨破產危機，必須打工賺錢！</p>
+            <button class="btn" onclick="startGame()" id="wel-btn">開始挑戰 (付費 10)</button>
+        </div>
+    </div>
+
+    <!-- 過關結算彈窗 -->
+    <div id="modal-clear" class="modal-overlay hidden">
+        <div class="modal">
+            <h2 id="clr-title">🎉 恭喜通關！</h2>
+            <p id="clr-desc">您成功完成了本關！<br>獲得獎金：<span id="clr-reward" style="color:var(--success-color); font-weight:bold;">+50 金幣</span></p>
+            <button class="btn" onclick="nextLevel()" id="clr-btn">進入下一關</button>
+        </div>
+    </div>
+
+    <!-- 遊戲結束 / 破產彈窗 -->
+    <div id="modal-gameover" class="modal-overlay hidden">
+        <div class="modal">
+            <h2 id="gov-title" style="color: var(--danger-color);">遊戲結束 / 破產</h2>
+            <p id="gov-desc">您的資金不足或挑戰失敗！您已宣告破產，必須前往工地打工賺取資金才能東山再起。</p>
+            <button class="btn" onclick="openPartTime()" id="gov-btn">前往工地打工賺錢 🏗️</button>
+        </div>
+    </div>
+
+    <!-- 打工賺錢彈窗 (經濟迴圈) -->
+    <div id="modal-parttime" class="modal-overlay hidden">
+        <div class="modal parttime-container">
+            <h2 id="pt-title">建築工地打工</h2>
+            <p id="pt-desc">快速點擊磚塊搬磚來賺取資本！<br>點擊 15 次可賺取 30 金幣起步資金。</p>
+            <div class="brick-pile" onclick="workClick()">🧱</div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: var(--warning-color);">
+                <span id="pt-count">0</span> / 15
+            </div>
+            <button class="btn secondary hidden" id="pt-finish-btn" onclick="finishPartTime()">領取薪水並重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= 多語系設定 =================
+        const langData = {
+            'zh-TW': {
+                title: '俄羅斯方塊：經濟大亨',
+                coins: '金幣',
+                score: '分數',
+                level: '關卡',
+                goal: '目標行',
+                next: '下一個',
+                hold: '暫存',
+                softDrop: '👇 軟降',
+                holdBtn: '🔁 交換',
+                welTitle: '歡迎來到方塊大亨',
+                welDesc: '入場費：<strong>10 金幣</strong>。<br>每消除指定行數即可通關並賺取豐厚獎金！如果金幣歸零，將面臨破產危機！',
+                welBtn: '開始挑戰 (付費 10)',
+                clrTitle: '🎉 恭喜通關！',
+                clrDesc: '您成功完成了本關！<br>獲得獎金：',
+                clrBtn: '進入下一關',
+                govTitle: '遊戲結束 / 破產',
+                govDesc: '您的資金不足或挑戰失敗！您已宣告破產，必須前往工地打工賺取資金才能東山再起。',
+                govBtn: '前往工地打工賺錢 🏗️',
+                ptTitle: '建築工地打工',
+                ptDesc: '快速點擊磚塊搬磚來賺取資本！<br>點擊 15 次可賺取 30 金幣起步資金。',
+                ptFinishBtn: '領取薪水並重新開始'
+            },
+            'en': {
+                title: 'Tetris: Economic Tycoon',
+                coins: 'Coins',
+                score: 'Score',
+                level: 'Level',
+                goal: 'Goal',
+                next: 'Next',
+                hold: 'Hold',
+                softDrop: '👇 Soft Drop',
+                holdBtn: '🔁 Hold',
+                welTitle: 'Welcome to Tetris Tycoon',
+                welDesc: 'Entry Fee: <strong>10 Coins</strong>.<br>Clear required lines to pass levels & earn cash! Don\'t go bankrupt!',
+                welBtn: 'Start Challenge (Cost 10)',
+                clrTitle: '🎉 Level Cleared!',
+                clrDesc: 'You cleared the level!<br>Reward Earned: ',
+                clrBtn: 'Next Level',
+                govTitle: 'Game Over / Bankrupt',
+                govDesc: 'You ran out of funds or failed! You are bankrupt and must work part-time to rebuild your fortune.',
+                govBtn: 'Go to Part-Time Job 🏗️',
+                ptTitle: 'Construction Site Job',
+                ptDesc: 'Tap the bricks quickly to earn starting capital!<br>Tap 15 times to earn 30 coins.',
+                ptFinishBtn: 'Collect Salary & Restart'
+            }
+        };
+
+        let currentLang = 'zh-TW';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh-TW' ? 'en' : 'zh-TW';
+            updateTexts();
+        }
+
+        function updateTexts() {
+            const t = langData[currentLang];
+            document.getElementById('ui-title').innerText = t.title;
+            document.getElementById('label-coins').innerText = t.coins;
+            document.getElementById('label-score').innerText = t.score;
+            document.getElementById('label-level').innerText = t.level;
+            document.getElementById('label-goal').innerText = t.goal;
+            document.getElementById('label-next').innerText = t.next;
+            document.getElementById('label-hold').innerText = t.hold;
+            
+            document.getElementById('wel-title').innerText = t.welTitle;
+            document.getElementById('wel-desc').innerHTML = t.welDesc;
+            document.getElementById('wel-btn').innerText = t.welBtn;
+
+            document.getElementById('clr-title').innerText = t.clrTitle;
+            document.getElementById('clr-btn').innerText = t.clrBtn;
+
+            document.getElementById('gov-title').innerText = t.govTitle;
+            document.getElementById('gov-desc').innerText = t.govDesc;
+            document.getElementById('gov-btn').innerText = t.govBtn;
+
+            document.getElementById('pt-title').innerText = t.ptTitle;
+            document.getElementById('pt-desc').innerHTML = t.ptDesc;
+            document.getElementById('pt-finish-btn').innerText = t.ptFinishBtn;
+        }
+
+        // ================= 遊戲核心邏輯 =================
+        const canvas = document.getElementById('tetris');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next');
+        const nextCtx = nextCanvas.getContext('2d');
+        const holdCanvas = document.getElementById('hold');
+        const holdCtx = holdCanvas.getContext('2d');
+
+        const BLOCK_SIZE = 20;
+        const COLS = 10;
+        const ROWS = 20;
+
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+        let score = 0;
+        let coins = 100;
+        let level = 1;
+        let linesClearedTotal = 0;
+        let linesGoal = 10;
+
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+
+        const SHAPES = [
+            [],
+            [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], // I
+            [[2, 0, 0], [2, 2, 2], [0, 0, 0]], // J
+            [[0, 0, 3], [3, 3, 3], [0, 0, 0]], // L
+            [[4, 4], [4, 4]], // O
+            [[0, 5, 5], [5, 5, 0], [0, 0, 0]], // S
+            [[0, 6, 0], [6, 6, 6], [0, 0, 0]], // T
+            [[7, 7, 0], [0, 7, 7], [0, 0, 0]]  // Z
+        ];
+
+        const COLORS = [
+            null,
+            '#06b6d4', // I - Cyan
+            '#3b82f6', // J - Blue
+            '#f97316', // L - Orange
+            '#eab308', // O - Yellow
+            '#22c55e', // S - Green
+            '#a855f7', // T - Purple
+            '#ef4444'  // Z - Red
+        ];
+
+        let player = {
+            pos: { x: 0, y: 0 },
+            matrix: null,
+            shapeIndex: 0
+        };
+
+        let nextShapeIndex = Math.floor(Math.random() * 7) + 1;
+        let holdShapeIndex = null;
+        let canHold = true;
+
+        let isPlaying = false;
+
+        function createPiece(type) {
+            return SHAPES[type];
+        }
+
+        function spawnPiece() {
+            player.shapeIndex = nextShapeIndex;
+            nextShapeIndex = Math.floor(Math.random() * 7) + 1;
+            player.matrix = createPiece(player.shapeIndex);
+            player.pos.y = 0;
+            player.pos.x = Math.floor((COLS - player.matrix[0].length) / 2);
+
+            canHold = true;
+            drawPreview(nextShapeIndex, nextCtx, nextCanvas);
+
+            if (checkCollision(player.matrix, player.pos)) {
+                // 遊戲結束檢查
+                gameOver();
+            }
+        }
+
+        function checkCollision(matrix, pos) {
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < matrix[r].length; c++) {
+                    if (matrix[r][c] !== 0) {
+                        let newX = pos.x + c;
+                        let newY = pos.y + r;
+                        if (newX < 0 || newX >= COLS || newY >= ROWS) return true;
+                        if (newY >= 0 && board[newY][newX] !== 0) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function mergeMatrix() {
+            player.matrix.forEach((row, r) => {
+                row.forEach((value, c) => {
+                    if (value !== 0) {
+                        if (player.pos.y + r >= 0) {
+                            board[player.pos.y + r][player.pos.x + c] = player.shapeIndex;
+                        }
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            let rowCount = 0;
+            outer: for (let r = ROWS - 1; r >= 0; r--) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === 0) continue outer;
+                }
+                const row = board.splice(r, 1)[0].fill(0);
+                board.unshift(row);
+                r++;
+                rowCount++;
+            }
+
+            if (rowCount > 0) {
+                score += rowCount * 100 * level;
+                linesClearedTotal += rowCount;
+                updateStats();
+
+                // 檢查是否達成過關目標
+                if (linesClearedTotal >= linesGoal) {
+                    levelClear();
+                }
+            }
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            if (checkCollision(player.matrix, player.pos)) {
+                player.pos.y--;
+                mergeMatrix();
+                clearLines();
+                spawnPiece();
+            }
+            dropCounter = 0;
+        }
+
+        function movePiece(dir) {
+            if (!isPlaying) return;
+            player.pos.x += dir;
+            if (checkCollision(player.matrix, player.pos)) {
+                player.pos.x -= dir;
+            }
+        }
+
+        function softDropPiece() {
+            if (!isPlaying) return;
+            playerDrop();
+        }
+
+        function hardDropPiece() {
+            if (!isPlaying) return;
+            while (!checkCollision(player.matrix, player.pos)) {
+                player.pos.y++;
+            }
+            player.pos.y--;
+            mergeMatrix();
+            clearLines();
+            spawnPiece();
+            dropCounter = 0;
+        }
+
+        function rotateMatrix(matrix) {
+            let N = matrix.length;
+            let ret = Array.from({ length: N }, () => Array(N).fill(0));
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    ret[c][N - 1 - r] = matrix[r][c];
+                }
+// 增加電腦鍵盤控制支援
+window.addEventListener('keydown', e => {
+    if (!isPlaying) return;
+    if (e.key === 'ArrowLeft') movePiece(-1);
+    else if (e.key === 'ArrowRight') movePiece(1);
+    else if (e.key === 'ArrowDown') softDropPiece();
+    else if (e.key === 'ArrowUp') rotatePiece();
+    else if (e.key === ' ') hardDropPiece(); // 空白鍵硬降
+    else if (e.key === 'c' || e.key === 'C') holdCurrentPiece(); // C 鍵暫存交換
+});
